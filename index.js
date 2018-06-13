@@ -1,6 +1,12 @@
 const { ApolloServer, gql } = require('apollo-server');
 const { GraphQLScalarType } = require('graphql');
-const { Kind } = require('graphql/language');
+
+const {
+  GraphQLDate,
+  GraphQLTime,
+  GraphQLDateTime
+} = require('graphql-iso-date');
+
 
 const books = [
   {
@@ -17,6 +23,9 @@ const typeDefs = gql`
   scalar Map
   scalar JSON
   scalar Object
+  scalar Date
+  scalar Time
+  scalar DateTime
 
   # This "Book" type can be used in other type declarations.
   type Book {
@@ -28,6 +37,7 @@ const typeDefs = gql`
   # (A "Mutation" type will be covered later on.)
   type Query {
     things(obj: Object, json: JSON, map: Map): JSON
+    now: DateTime
   }
 `;
 
@@ -57,7 +67,8 @@ const checkObject = valuesMustHaveSameType => value => {
 // schema.  We'll retrieve books from the "books" array above.
 const resolvers = {
   Query: {
-    things: (_, args) => args
+    things: (_, args) => args,
+    now: () => new Date(),
   },
   Map: new GraphQLScalarType({
     name: 'Map',
@@ -88,7 +99,10 @@ const resolvers = {
       console.log('parseLiteral', ast);
       throw new Error('parsing not implemented');
     }
-  })
+  }),
+  Date: GraphQLDate,
+  Time: GraphQLTime,
+  DateTime: GraphQLDateTime,
 };
 
 // In the most basic sense, the ApolloServer can be started
