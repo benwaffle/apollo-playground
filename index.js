@@ -7,7 +7,6 @@ const {
   GraphQLDateTime
 } = require('graphql-iso-date');
 
-
 const books = [
   {
     title: 'Harry Potter and the Chamber of Secrets',
@@ -26,6 +25,12 @@ const typeDefs = gql`
   scalar Date
   scalar Time
   scalar DateTime
+  scalar Long
+
+  input Complex {
+    real: Long
+    imaginary: Long
+  }
 
   # This "Book" type can be used in other type declarations.
   type Book {
@@ -36,7 +41,8 @@ const typeDefs = gql`
   # The "Query" type is the root of all GraphQL queries.
   # (A "Mutation" type will be covered later on.)
   type Query {
-    things(obj: Object, json: JSON, map: Map): JSON
+    things(obj: Object!, json: JSON!, map: Map!): Object
+    long(x: Complex): Long
     now: DateTime
   }
 `;
@@ -63,12 +69,23 @@ const checkObject = valuesMustHaveSameType => value => {
   return value;
 }
 
+function checkLong(value) {
+  if (typeof value !== 'number')
+    throw new TypeError(`${value} is not a number`)
+
+  if (!Number.isInteger(value))
+    throw new TypeError(`${value} is not a long`)
+
+  return value
+}
+
 // Resolvers define the technique for fetching the types in the
 // schema.  We'll retrieve books from the "books" array above.
 const resolvers = {
   Query: {
     things: (_, args) => args,
     now: () => new Date(),
+    long: (_, args) => args.x.real
   },
   Map: new GraphQLScalarType({
     name: 'Map',
@@ -103,6 +120,15 @@ const resolvers = {
   Date: GraphQLDate,
   Time: GraphQLTime,
   DateTime: GraphQLDateTime,
+  Long: new GraphQLScalarType({
+    name: 'Long',
+    serialize: checkLong,
+    parseValue: checkLong,
+    parseLiteral(ast) {
+      console.log('parseLiteral', ast);
+      throw new Error('parsing not implemented');
+    }
+  })
 };
 
 // In the most basic sense, the ApolloServer can be started
