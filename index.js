@@ -27,6 +27,11 @@ const typeDefs = gql`
   scalar DateTime
   scalar Long
 
+  enum Color {
+    RED
+    BLUE
+  }
+
   input Complex {
     real: Long
     imaginary: Long
@@ -42,12 +47,17 @@ const typeDefs = gql`
   # (A "Mutation" type will be covered later on.)
   type Query {
     things(obj: Object!, json: JSON!, map: Map!): Object
-    long(x: Complex): Long
+    long(x: Long! = 10): Long
+    complex(c: Complex! = {real: 1, imaginary: 2}): Long
     now: DateTime
+    color: Color
+    ping(x: Int! = 42): Int
   }
 `;
 
 const checkObject = valuesMustHaveSameType => value => {
+  console.log(new Error().stack.split('\n')[2], value);
+
   if (Array.isArray(value))
     throw new TypeError('keys should be strings');
 
@@ -85,7 +95,10 @@ const resolvers = {
   Query: {
     things: (_, args) => args,
     now: () => new Date(),
-    long: (_, args) => args.x.real
+    long: (_, args) => args.x,
+    complex: (_, args) => args.c.real,
+    color: () => 'GREEN',
+    ping: (_, args) => args.x
   },
   Map: new GraphQLScalarType({
     name: 'Map',
@@ -134,7 +147,14 @@ const resolvers = {
 // In the most basic sense, the ApolloServer can be started
 // by passing type definitions (typeDefs) and the resolvers
 // responsible for fetching the data for those types.
-const server = new ApolloServer({ typeDefs, resolvers });
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+});
+
+const { inspect } = require('util');
+
+console.log(inspect(server.schema._typeMap.Query.getFields().ping.args[0].defaultValue, true, 999, true));
 
 // This `listen` method launches a web-server.  Existing apps
 // can utilize middleware options, which we'll discuss later.
